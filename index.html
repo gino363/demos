@@ -1,1 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Warehouse App</title>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: sans-serif; background: #3b8b46; padding: 20px; }
+    h1 { color: #333; }
+    input, button { font-size: 16px; margin: 5px; padding: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+    tr:nth-child(even) { background-color: #e8f4ea; }
+  </style>
+</head>
+<body>
 
+  <h1>Inventory App</h1>
+
+  <input id="search" type="text" placeholder="Search item name/location">
+
+  <br><br>
+
+  <input id="itemName" type="text" placeholder="Item Name">
+  <input id="itemCode" type="text" placeholder="Item Code">
+  <input id="itemLocation" type="text" placeholder="Location">
+  <button onclick="addItem()">Add Item</button>
+  <button onclick="exportCSV()">Export CSV</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Code</th>
+        <th>Location</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="itemTable"></tbody>
+  </table>
+
+  <script>
+    let items = [];
+    let editIndex = -1;
+
+    function loadItems() {
+      const saved = localStorage.getItem("warehouseItems");
+      if (saved) {
+        items = JSON.parse(saved);
+        renderTable();
+      }
+    }
+
+    function saveItems() {
+      localStorage.setItem("warehouseItems", JSON.stringify(items));
+    }
+
+    function addItem() {
+      const name = document.getElementById("itemName").value.trim();
+      const code = document.getElementById("itemCode").value.trim();
+      const location = document.getElementById("itemLocation").value.trim();
+      if (!name && !code && !location) return;
+
+      if (editIndex > -1) {
+        items[editIndex] = { name, code, location };
+        editIndex = -1;
+      } else {
+        items.push({ name, code, location });
+      }
+
+      document.getElementById("itemName").value = "";
+      document.getElementById("itemCode").value = "";
+      document.getElementById("itemLocation").value = "";
+      saveItems();
+      renderTable();
+    }
+
+    function renderTable() {
+      const table = document.getElementById("itemTable");
+      table.innerHTML = "";
+      items.forEach((item, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.code}</td>
+          <td>${item.location}</td>
+          <td>
+            <button onclick="editItem(${index})">Edit</button>
+            <button onclick="deleteItem(${index})">Delete</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    function editItem(index) {
+      const item = items[index];
+      document.getElementById("itemName").value = item.name;
+      document.getElementById("itemCode").value = item.code;
+      document.getElementById("itemLocation").value = item.location;
+      editIndex = index;
+    }
+
+    function deleteItem(index) {
+      if (confirm("Are you sure you want to delete this item?")) {
+        items.splice(index, 1);
+        saveItems();
+        renderTable();
+      }
+    }
+
+    function exportCSV() {
+      let csv = "Name,Code,Location\n";
+      items.forEach(item => {
+        csv += `"${item.name}","${item.code}","${item.location}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "warehouse_data.csv";
+      link.click();
+    }
+
+    document.getElementById("search").addEventListener("keyup", function () {
+      const value = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#itemTable tr");
+      rows.forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(value) ? "" : "none";
+      });
+    });
+
+    loadItems();
+  </script>
+
+</body>
+</html>
